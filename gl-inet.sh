@@ -293,6 +293,9 @@ recovery_opkg_settings() {
 	*6000*)
 		update_opkg_config
 		;;
+	*BE10000*)
+		update_opkg_config_be10000
+		;;
 	*)
 		echo "Router name does not contain '3000' 6000 or '2500'."
 		;;
@@ -322,6 +325,32 @@ update_opkg_config() {
 	5.15*)
 		mt6000_opkg="https://mt3000.netlify.app/mt-6000/distfeeds.conf"
 		wget -O /etc/opkg/distfeeds.conf ${mt6000_opkg}
+		;;
+	*)
+		echo "Unsupported kernel version: $kernel_version"
+		return 1
+		;;
+	esac
+}
+
+update_opkg_config_be10000() {
+	kernel_version=$(uname -r)
+	echo "BE10000 kernel version: $kernel_version"
+	case $kernel_version in
+	5.4*)
+		be10000_opkg="https://github.com/aqsandy/gl-inet-onescript/raw/refs/heads/master/be10000/distfeeds-5.4.conf"
+		wget -O /etc/opkg/distfeeds.conf ${be10000_opkg}
+
+		mkdir -p /tmp/be10000
+		wget -O /tmp/be10000/script-utils.ipk "https://github.com/aqsandy/gl-inet-onescript/raw/refs/heads/master/be10000/script-utils.ipk"
+		wget -O /tmp/be10000/mdadm.ipk "https://github.com/aqsandy/gl-inet-onescript/raw/refs/heads/master/be10000/mdadm.ipk"
+		wget -O /tmp/be10000/lsblk.ipk "https://github.com/aqsandy/gl-inet-onescript/raw/refs/heads/master/be10000/lsblk.ipk"
+		opkg update
+		if [ -f "/tmp/be10000/lsblk.ipk" ]; then
+			# 先卸载之前安装过的lsblk,确保使用的是正确的lsblk
+			opkg remove lsblk
+		fi
+		opkg install /tmp/be10000/*.ipk
 		;;
 	*)
 		echo "Unsupported kernel version: $kernel_version"
@@ -537,6 +566,7 @@ while true; do
 	green "*******GL-iNet MT-2500A"
 	green "*******GL-iNet MT-3000 "
 	green "*******GL-iNet MT-6000 "
+	green "*******GL-iNet BE10000 "
 	echo "******************下次调用 直接输入快捷键 g  *****************************"
 	echo
 	light_magenta " 1. $result"
